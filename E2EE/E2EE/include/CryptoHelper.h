@@ -30,7 +30,7 @@ public:
 	DecryptAESKey(const std::vector<unsigned char>& encryptedKey);
 
 	std::vector<unsigned char>
-	AESEncrypt(const std::vector<unsigned char>& data);
+	AESEncrypt(const std::string& plaintext, std::vector<unsigned char>& data);
 
 	std::string
 	AESDecrypt(const std::vector<unsigned char>& encryptedData,

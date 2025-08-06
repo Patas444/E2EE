@@ -14,10 +14,10 @@ public:
 
 	// Modo Server
 	bool
-	StaticServer(int port);
+	StartServer(int port);
 
 	SOCKET
-	AceptClient();
+	AcceptClient();
 
 	// Modo Cliente
 	bool
@@ -34,12 +34,15 @@ public:
 	ReceiveData(SOCKET socket);
 
 	std::vector <unsigned char>
-	ReceiveData(SOCKET socket, int size = 0);
+	ReceiveDataBinary(SOCKET socket, int size = 0);
 
 	void
 	close(SOCKET socket);
 
-private:
+public:
 	SOCKET m_serverSocket = -1;
+	
+
+private:
 	bool m_initialized = 0;
 };

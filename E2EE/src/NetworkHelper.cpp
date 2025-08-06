@@ -1,11 +1,10 @@
-#include "NetworkHelper.h"
+ï»¿#include "NetworkHelper.h"
 
 NetworkHelper::NetworkHelper() : m_serverSocket(INVALID_SOCKET), m_initialized(false) {
 	WSADATA wsaData;
-	
 	int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (result != 0) {
-		std::cerr << "WSAStartup failed: "  << result << std::endl;
+		std::cerr << "WSAStartup failed: " << result << std::endl;
 	}
 	else {
 		m_initialized = true;
@@ -23,23 +22,23 @@ NetworkHelper::~NetworkHelper() {
 }
 
 bool
-NetworkHelper::StaticServer(int port) {
-	// Crea el Socket TCP
+NetworkHelper::StartServer(int port) {
+	// Crea el socket TCP
 	m_serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (m_serverSocket == INVALID_SOCKET) {
 		std::cerr << "Error creating socket: " << WSAGetLastError() << std::endl;
 		return false;
 	}
 
-	// Configura la dirección del servidor(IPv4, cualquier IP local, puerto dado)
+	// Configura la direcciï¿½n del servidor (IPv4, cualquier IP local, puerto dado)
 	sockaddr_in serverAddress{};
 	serverAddress.sin_family = AF_INET;
 	serverAddress.sin_port = htons(port);
 	serverAddress.sin_addr.s_addr = INADDR_ANY;
 
-	// Asocia el socket a la dirección y puerto
+	// Asocia el socket a la direcciï¿½n y puerto
 	if (bind(m_serverSocket, (sockaddr*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR) {
-		std::cerr << "Eroor binding socket" << WSAGetLastError() << std::endl;
+		std::cerr << "Error binding socket: " << WSAGetLastError() << std::endl;
 		closesocket(m_serverSocket);
 		m_serverSocket = INVALID_SOCKET;
 		return false;
@@ -47,18 +46,18 @@ NetworkHelper::StaticServer(int port) {
 
 	// Escucha conexiones entrantes
 	if (listen(m_serverSocket, SOMAXCONN) == SOCKET_ERROR) {
-		std::cerr << "Error listening on sockt: " << WSAGetLastError() << std::endl;
+		std::cerr << "Error listening on socket: " << WSAGetLastError() << std::endl;
 		closesocket(m_serverSocket);
 		m_serverSocket = INVALID_SOCKET;
 		return false;
 	}
 
-	std::cout << "Server is listening on port " << port << std::endl;
+	std::cout << "Server started on port " << port << std::endl;
 	return true;
 }
 
 SOCKET
-NetworkHelper::AceptClient() {
+NetworkHelper::AcceptClient() {
 	SOCKET clientSocket = accept(m_serverSocket, nullptr, nullptr);
 	if (clientSocket == INVALID_SOCKET) {
 		std::cerr << "Error accepting client: " << WSAGetLastError() << std::endl;
@@ -70,13 +69,14 @@ NetworkHelper::AceptClient() {
 
 bool
 NetworkHelper::ConnectToServer(const std::string& ip, int port) {
+	// Crea el socket TCP
 	m_serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (m_serverSocket == INVALID_SOCKET) {
 		std::cerr << "Error creating socket: " << WSAGetLastError() << std::endl;
 		return false;
 	}
 
-	// Configura la dirección del servidor (IPv4, IP dada, puerto dado)
+	// Configura la direcciï¿½n del servidor (IPv4, IP dada, puerto dado)
 	sockaddr_in serverAddress{};
 	serverAddress.sin_family = AF_INET;
 	serverAddress.sin_port = htons(port);
@@ -100,24 +100,23 @@ NetworkHelper::SendData(SOCKET socket, const std::string& data) {
 
 bool
 NetworkHelper::SendData(SOCKET socket, const std::vector<unsigned char>& data) {
-	return send(socket, 
-				reinterpret_cast<const char*>(data.data()), 
-				static_cast<int>(data.size()), 0) != SOCKET_ERROR;
+	return send(socket,
+		reinterpret_cast<const char*>(data.data()),
+		static_cast<int>(data.size()), 0) != SOCKET_ERROR;
 }
 
 std::string
 NetworkHelper::ReceiveData(SOCKET socket) {
 	char buffer[4096] = {};
 	int len = recv(socket, buffer, sizeof(buffer), 0);
-	
+
 	return std::string(buffer, len);
 }
 
 std::vector<unsigned char>
-NetworkHelper::ReceiveData(SOCKET socket, int size) {
+NetworkHelper::ReceiveDataBinary(SOCKET socket, int size) {
 	std::vector<unsigned char> buffer(size);
 	int len = recv(socket, reinterpret_cast<char*>(buffer.data()), size, 0);
-
 	return buffer;
 }
 

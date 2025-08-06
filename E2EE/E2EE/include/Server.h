@@ -11,8 +11,22 @@ public:
 
 	~Server();
 
+	/**
+	 * @brief Inicia el servidor en el puerto especificado
+	 *
+	 * @return true si el servidor se inicializó correctamente
+	 * @return false si hubo un error
+	 */
 	bool Start();
+
+	/**
+	 * @brief Espera a que un cliente se conecte e intercambia claves públicas.
+	 */
 	void WaitForClient();
+
+	/**
+	 * @brief Recibe un mensaje cifrado del cliente, lo descifra y lo imprime.
+	 */
 	void ReceiveEncryptedMessage();
 
 private:

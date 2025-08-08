@@ -9,7 +9,7 @@ class
 	NetworkHelper {
 public:
 
-	NetworkHelper() = default;
+	NetworkHelper();
 	~NetworkHelper();
 
 	// Modo Server
@@ -38,6 +38,12 @@ public:
 
 	void
 	close(SOCKET socket);
+
+	bool
+	SendAll(SOCKET s, const unsigned char* data, int len);
+
+	bool
+	ReceiveExact(SOCKET s, unsigned char* out, int len);
 
 public:
 	SOCKET m_serverSocket = -1;

@@ -23,7 +23,7 @@ public:
 	 */
 	void 
 	ExchangeKeys();
-	
+
 	/**
 	 * @brief Cifra la clave AES con la p�blica del servidor y la env�a.
 	 */
@@ -37,6 +37,15 @@ public:
 	 */
 	void 
 	SendEncryptedMessage(const std::string& message);
+
+	void
+	SendEncryptedMessageLoop();
+
+	void
+	StartChatLoop();
+
+	void
+	StartReceiveLoop();
 
 private:
 	std::string m_ip;

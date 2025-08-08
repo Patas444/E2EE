@@ -2,6 +2,7 @@
 #include "pem.h"
 #include "rand.h"
 #include "err.h"
+#include "evp.h"
 
 CryptoHelper::CryptoHelper() :rsaKeyPair(nullptr), peerPublicKey(nullptr) {
 	std::memset(aesKey, 0, sizeof(aesKey));
@@ -79,34 +80,49 @@ RSA_private_decrypt(encryptedKey.size(),
 }
 
 std::vector<unsigned char>
-CryptoHelper::AESEncrypt(const std::string& plaintext, 
-						 std::vector<unsigned char>& outIV) {
+CryptoHelper::AESEncrypt(const std::string& plaintext,
+	std::vector<unsigned char>& outIV) {
 	outIV.resize(AES_BLOCK_SIZE);
 	RAND_bytes(outIV.data(), AES_BLOCK_SIZE);
 
-	std::vector<unsigned char> ciphertext(plaintext.size() + AES_BLOCK_SIZE);
-	AES_KEY aesKeyEnc;
-	AES_set_encrypt_key(aesKey, 256, &aesKeyEnc);
-	AES_cbc_encrypt(reinterpret_cast<const unsigned char*>(plaintext.data()),
-					ciphertext.data(),
-					plaintext.size(),
-					&aesKeyEnc,
-					outIV.data(),
-					AES_ENCRYPT);
-	return ciphertext;
+	const EVP_CIPHER* cipher = EVP_aes_256_cbc();
+	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+
+	std::vector<unsigned char> out(plaintext.size() + AES_BLOCK_SIZE); // +pad
+	int outlen1 = 0, outlen2 = 0;
+
+	EVP_EncryptInit_ex(ctx, cipher, nullptr, aesKey, outIV.data());
+	EVP_EncryptUpdate(ctx,
+					  out.data(), &outlen1,
+					  reinterpret_cast<const unsigned char*>(plaintext.data()),
+					  static_cast<int>(plaintext.size()));
+	EVP_EncryptFinal_ex(ctx, out.data() + outlen1, &outlen2);
+
+	out.resize(outlen1 + outlen2);
+	EVP_CIPHER_CTX_free(ctx);
+	return out;
 }
 
 std::string
 CryptoHelper::AESDecrypt(const std::vector<unsigned char>& ciphertext,
-						 const std::vector<unsigned char>& iv) {
-	std::vector<unsigned char> decryptedData(ciphertext.size());
-	AES_KEY aesKeyDec;
-	AES_set_decrypt_key(aesKey, 256, &aesKeyDec);
-	AES_cbc_encrypt(ciphertext.data(),
-					decryptedData.data(),
-					static_cast<size_t>(ciphertext.size()),
-					&aesKeyDec,
-				const_cast<unsigned char*>(iv.data()),
-					AES_DECRYPT);
-	return std::string(decryptedData.begin(), decryptedData.end());
+	const std::vector<unsigned char>& iv) {
+	const EVP_CIPHER* cipher = EVP_aes_256_cbc();
+	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+
+	std::vector<unsigned char> out(ciphertext.size());
+	int outlen1 = 0, outlen2 = 0;
+
+	EVP_DecryptInit_ex(ctx, cipher, nullptr, aesKey, iv.data());
+	EVP_DecryptUpdate(ctx,
+		out.data(), &outlen1,
+		ciphertext.data(),
+		static_cast<int>(ciphertext.size()));
+	if (EVP_DecryptFinal_ex(ctx, out.data() + outlen1, &outlen2) != 1) {
+		EVP_CIPHER_CTX_free(ctx);
+		return {}; // padding/key/iv incorrectos
+	}
+
+	out.resize(outlen1 + outlen2);
+	EVP_CIPHER_CTX_free(ctx);
+	return std::string(reinterpret_cast<char*>(out.data()), out.size());
 }

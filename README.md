@@ -1,3 +1,3 @@
 # E2EE
 
-Este es un compendio de las clases vistas en la materia de Arquitectura de Motores Graficos.
+El cifrado de extremo a extremo asegura que solo el emisor y el receptor pueden leer el contenido del mensaje. Ni siquiera el servidor intermedio puede desencriptarlo.

@@ -5,10 +5,12 @@
 #include "evp.h"
 
 CryptoHelper::CryptoHelper() :rsaKeyPair(nullptr), peerPublicKey(nullptr) {
+	// Inicializa la clave AES en cero
 	std::memset(aesKey, 0, sizeof(aesKey));
 }
 
 CryptoHelper::~CryptoHelper() {
+	// Liberar recursos RSA
 	if (rsaKeyPair) {
 		RSA_free(rsaKeyPair);
 	}
@@ -19,8 +21,11 @@ CryptoHelper::~CryptoHelper() {
 
 void
 CryptoHelper::GenerateRSAKey() {
+	// Crea un nuevo exponente público (65537 por defecto)
 	BIGNUM* bn = BN_new();
 	BN_set_word(bn, RSA_F4);
+
+	// Genera par de claves RSA de 2048 bits
 	rsaKeyPair = RSA_new();
 	RSA_generate_key_ex(rsaKeyPair, 2048, bn, nullptr);
 	BN_free(bn);
@@ -28,6 +33,7 @@ CryptoHelper::GenerateRSAKey() {
 
 std::string
 CryptoHelper::GetPublicKeyString() const {
+	// Exporta la clave pública a formato PEM
 	BIO* bio = BIO_new(BIO_s_mem());
 	PEM_write_bio_RSA_PUBKEY(bio, rsaKeyPair);
 	char* buffer = nullptr;
@@ -39,6 +45,7 @@ CryptoHelper::GetPublicKeyString() const {
 
 void
 CryptoHelper::LoadPeerPublicKey(const std::string& pemKey) {
+	// Carga la clave pública del peer desde un string PEM
 	BIO* bio = BIO_new_mem_buf(pemKey.data(), static_cast<int>(pemKey.size()));
 	peerPublicKey = PEM_read_bio_RSAPublicKey(bio, nullptr, nullptr, nullptr);
 	BIO_free(bio);
@@ -50,6 +57,7 @@ CryptoHelper::LoadPeerPublicKey(const std::string& pemKey) {
 
 void
 CryptoHelper::GenerateAESKey() {
+	// Genera clave AES de 256 bits (32 bytes)
 	RAND_bytes(aesKey, sizeof(aesKey));
 }
 
@@ -58,6 +66,7 @@ CryptoHelper::EncryptAESKeyWithPeer() {
 	if (!peerPublicKey) {
 		throw std::runtime_error("Peer public key not loaded");
 	}
+	// Cifra la clave AES con la clave pública del peer (RSA + OAEP)
 	std::vector<unsigned char> encryptedKey(256);
 	int result = RSA_public_encrypt(sizeof(aesKey), 
 									aesKey, 
@@ -71,23 +80,25 @@ CryptoHelper::EncryptAESKeyWithPeer() {
 
 void
 CryptoHelper::DecryptAESKey(const std::vector<unsigned char>& encryptedKey) {
-
-RSA_private_decrypt(encryptedKey.size(),
-					encryptedKey.data(),
-					aesKey,
-					rsaKeyPair,
-					RSA_PKCS1_OAEP_PADDING);
+	// Descifra clave AES usando la clave privada local
+	RSA_private_decrypt(encryptedKey.size(),
+						encryptedKey.data(),
+						aesKey,
+						rsaKeyPair,
+						RSA_PKCS1_OAEP_PADDING);
 }
 
 std::vector<unsigned char>
 CryptoHelper::AESEncrypt(const std::string& plaintext,
 	std::vector<unsigned char>& outIV) {
+	// Genera un IV aleatorio de 16 bytes
 	outIV.resize(AES_BLOCK_SIZE);
 	RAND_bytes(outIV.data(), AES_BLOCK_SIZE);
 
 	const EVP_CIPHER* cipher = EVP_aes_256_cbc();
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
 
+	// Buffer de salida con espacio adicional para padding
 	std::vector<unsigned char> out(plaintext.size() + AES_BLOCK_SIZE); // +pad
 	int outlen1 = 0, outlen2 = 0;
 
@@ -117,6 +128,7 @@ CryptoHelper::AESDecrypt(const std::vector<unsigned char>& ciphertext,
 		out.data(), &outlen1,
 		ciphertext.data(),
 		static_cast<int>(ciphertext.size()));
+	// Si el padding, la clave o el IV son incorrectos, falla
 	if (EVP_DecryptFinal_ex(ctx, out.data() + outlen1, &outlen2) != 1) {
 		EVP_CIPHER_CTX_free(ctx);
 		return {}; // padding/key/iv incorrectos

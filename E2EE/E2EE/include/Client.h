@@ -38,19 +38,35 @@ public:
 	void 
 	SendEncryptedMessage(const std::string& message);
 
+
+	/**
+	 * @brief Inicia un bucle que solicita mensajes por consola,
+	 *        los cifra y los envía al servidor.
+	 *
+	 * Este método se usa para enviar mensajes de manera continua
+	 * mientras dure la conexión.
+	 */
 	void
 	SendEncryptedMessageLoop();
 
+
+	/**
+	 * @brief Inicia el ciclo principal de chat.
+	 *
+	 * Combina el envío y recepción de mensajes en paralelo,
+	 * permitiendo comunicación en tiempo real con el servidor.
+	 */
 	void
 	StartChatLoop();
 
+
 	void
-	StartReceiveLoop();
+	StartReceiveLoop(); // Recibir y mostrar mensajes del servidor
 
 private:
-	std::string m_ip;
-	int m_port;
-	SOCKET m_serverSock;
-	NetworkHelper m_net;
-	CryptoHelper m_crypto;
+	std::string m_ip; // Dirección IP del servidor.
+	int m_port; // Puerto de conexión.
+	SOCKET m_serverSock; // Socket para la comunicación con el servidor.
+	NetworkHelper m_net; // Ayudante para operaciones de red.
+	CryptoHelper m_crypto; // Ayudante para operaciones criptográficas.
 };

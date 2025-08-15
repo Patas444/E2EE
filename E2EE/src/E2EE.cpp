@@ -6,6 +6,7 @@ int main(int argc,char** argv) {
 	std::string mode, ip;
 	int port = 0;
 
+	// Modo interactivo (sin argumentos)
 	if (argc < 2) {
 		std::cout << "Modo (Server / Client): ";
 		std::cin >> mode;
@@ -24,6 +25,7 @@ int main(int argc,char** argv) {
 			return 0;
 		}
 	}
+	// Modo por argumentos
 	else {
 		mode = argv[1];
 		if (mode == "server") {
@@ -37,6 +39,7 @@ int main(int argc,char** argv) {
 		}
 	}
 
+	// Ejecución según modo
 	if (mode == "server") {
 		Server s(port);
 		if (!s.Start()) return 2;
@@ -51,6 +54,7 @@ int main(int argc,char** argv) {
 		c.SendEncryptedMessage("Hola servidor, cifrado AES; ");
 	}
 
+	// Esperar antes de salir
 	std::cout << "Listo. Presiona [Enter] para salir...";
 	std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 	std::cin.get();

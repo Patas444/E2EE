@@ -2,7 +2,9 @@
 
 Client::Client(const std::string& ip, int port)
 	: m_ip(ip), m_port(port), m_serverSock(INVALID_SOCKET) {
+	// Genera par de claves RSA al instanciar
 	m_crypto.GenerateRSAKey();
+	// Genera la clave AES que se usará para cifrar mensajes
 	m_crypto.GenerateAESKey();
 }
 
@@ -16,7 +18,7 @@ bool Client::Connect() {
 	std::cout << "[Client] Conectado al servidor " << m_ip << ":" << m_port << ".. \n";
 	bool connected = m_net.ConnectToServer(m_ip, m_port);
 	if (connected) {
-		m_serverSock = m_net.m_serverSocket;
+		m_serverSock = m_net.m_serverSocket; // Guardar el socket una vez conectado
 		std::cout << "[Client] Conexión establecida. \n";
 	}
 	else {
@@ -27,10 +29,12 @@ bool Client::Connect() {
 
 void
 Client::ExchangeKeys() {
+	// 1. Recibe la clave pública del servidor
 	std::string serverPubKey = m_net.ReceiveData(m_serverSock);
 	m_crypto.LoadPeerPublicKey(serverPubKey);
 	std::cout << "[Client] Clave pública del servidor recibida.\n";
 
+	// 2. Envía la clave pública del cliente
 	std::string clientPubKey = m_crypto.GetPublicKeyString();
 	m_net.SendData(m_serverSock, clientPubKey);
 	std::cout << "[Client] Clave pública del cliente enviada.\n";
@@ -38,6 +42,7 @@ Client::ExchangeKeys() {
 
 void
 Client::SendAESKeyEncrypted() {
+	// Cifra la clave AES usando la clave pública del servidor
 	std::vector<unsigned char> encryptedAES = m_crypto.EncryptAESKeyWithPeer();
 	m_net.SendData(m_serverSock, encryptedAES);
 	std::cout << "[Client] Clave AES cifrada y enviada al servidor.\n";
@@ -45,6 +50,7 @@ Client::SendAESKeyEncrypted() {
 
 void
 Client::SendEncryptedMessage(const std::string& message) {
+	// Cifra el mensaje con AES y genera un IV
 	std::vector<unsigned char> iv;
 	auto cipher = m_crypto.AESEncrypt(message, iv);
 
@@ -69,11 +75,14 @@ Client::SendEncryptedMessageLoop() {
 		std::getline(std::cin, msg);
 		if (msg == "/exit") break;
 
+		// Cifra el mensaje con AES
 		std::vector<unsigned char> iv;
 		auto cipher = m_crypto.AESEncrypt(msg, iv);
 
+		// Enviar IV
 		m_net.SendData(m_serverSock, iv);
 
+		// Enviar tamaño
 		uint32_t clen = static_cast<uint32_t>(cipher.size());
 		uint32_t nlen = htonl(clen);
 		std::vector<unsigned char> len4(reinterpret_cast<unsigned char*>(&nlen),
@@ -120,10 +129,12 @@ Client::StartReceiveLoop() {
 }
 
 void Client::StartChatLoop() {
+	// Hilo para recibir mensajes
 	std::thread recvThread([&]() {
 		StartReceiveLoop();
 		});
 
+	// Bucle para enviar mensajes
 	SendEncryptedMessageLoop();
 
 	if (recvThread.joinable())

@@ -32,13 +32,27 @@ public:
 	void 
 	ReceiveEncryptedMessage();
 
+
+	/**
+	 * @brief Inicia un bucle continuo para recibir mensajes cifrados del cliente.	
+	 */
 	void
 	StartReceiveLoop();
 
+
+	/**
+	 * @brief Inicia un bucle para leer mensajes por consola, cifrarlos y enviarlos al cliente.
+	 */
 	void
 	SendEncryptedMessageLoop();
 
 
+	/**
+	 * @brief Inicia el ciclo de chat bidireccional.
+	 *
+	 * Combina el envío y la recepción de mensajes en paralelo, 
+	 * permitiendo comunicación en tiempo real con el cliente.
+	 */
 	void
 	StartChatLoop();
 
